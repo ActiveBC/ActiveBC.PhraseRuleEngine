@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Version>3.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.1.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.1.0" />
+    <PackageReference Include="IronMeta" Version="4.5.0" />
+  </ItemGroup>
+
+  <!-- uncomment this section to enable build-time RuleSetSyntaxMatcher generation by IronMeta  -->
+<!--  <Target Name="Generate_RuleSetSyntaxMatcher" BeforeTargets="BeforeBuild">-->
+<!--    <Exec Command="$(NuGetPackageRoot)ironmeta\4.5.0\tools\net5.0\IronMeta.App.exe -f -n ActiveBC.PhraseRuleEngine.Build.Tokenization.Grammar $(ProjectDir)Build\Tokenization\Grammar\RuleSetSyntaxMatcher.ironmeta" />-->
+<!--    <ItemGroup>-->
+<!--      <Compile Include="$(ProjectDir)Construction\Tokenization\Grammar\*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />-->
+<!--    </ItemGroup>-->
+<!--  </Target>-->
+
+  <!-- uncomment this section to enable build-time CSharpSyntaxMatcher generation by IronMeta-->
+<!--  <Target Name="Generate_CSharpSyntaxMatcher" BeforeTargets="BeforeBuild">-->
+<!--    <Exec Command="$(NuGetPackageRoot)ironmeta\4.5.0\tools\net5.0\IronMeta.App.exe -f -n ActiveBC.PhraseRuleEngine.Lib.CodeAnalysis.Tokenization.Grammar $(ProjectDir)Lib\CodeAnalysis\Tokenization\Grammar\CSharpSyntaxMatcher.ironmeta" />-->
+<!--    <ItemGroup>-->
+<!--      <Compile Include="$(ProjectDir)Lib\CodeAnalysis\Tokenization\Grammar\*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />-->
+<!--    </ItemGroup>-->
+<!--  </Target>-->
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>ActiveBC.PhraseRuleEngine.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>ActiveBC.PhraseRuleEngine.Benchmarking</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+		<Authors>ActiveBC LLC</Authors>
+		<Company>ActiveBC LLC</Company>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<PackageProjectUrl>https://github.com/ActiveBC/ActiveBC.PhraseRuleEngine</PackageProjectUrl>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<DeterministicSourcePaths>true</DeterministicSourcePaths>
+	</PropertyGroup>
+
+	<!--see https://github.com/dotnet/sourcelink/blob/master/docs/README.md#custom-host-domains-->
+	<ItemGroup Condition=" '$(Configuration)' == 'Release' ">
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+	</ItemGroup>
+
+</Project>

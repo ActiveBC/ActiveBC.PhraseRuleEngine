@@ -1,0 +1,71 @@
+using System;
+using System.Linq;
+using IronMeta.Matcher;
+using ActiveBC.PhraseRuleEngine.Lib.Common.Helpers;
+using ActiveBC.PhraseRuleEngine.Lib.CodeAnalysis.Tokenization.Tokens;
+using ActiveBC.PhraseRuleEngine.Lib.CodeAnalysis.Tokenization.Tokens.Internal;
+using ActiveBC.PhraseRuleEngine.Build.Tokenization.Tokens;
+
+ironmeta RuleSetSyntaxMatcher<char, IToken> : Matcher<char, IToken>
+{
+    // constants
+    SPACING = EOL | WHITESPACE | COMMENT;
+    WHITESPACE = [' ' '\t'];
+    EOL = "\r\n";
+    EOF = ~.;
+    COMMENT = m_cSharpSyntaxMatcher.CSharpComment;
+
+    // structure
+    RuleSet = (SPACING* Using SPACING*)*:usings (SPACING* Rule SPACING*)*:rules EOF -> {
+        return new RuleSetToken(
+            usings.Results.Cast<UsingToken>().ToArray(),
+            rules.Results.Cast<RuleToken>().ToArray()
+        );
+    };
+
+    // usings
+    Using = "using" SPACING+ m_cSharpSyntaxMatcher.CSharpNamespace:value SPACING* ';' SPACING+ -> {
+        return new UsingToken(((CSharpTypeNameWithNamespaceToken) value.Results.Single()).Value);
+    };
+
+    // rule
+    Rule = m_cSharpSyntaxMatcher.CSharpType:type SPACING+ RuleName:name RuleParameters:parameters SPACING* '=' SPACING* Pattern:pattern SPACING* Projection:projection -> {
+
+        (string Key, string RawPattern) patternData = ((ContainerToken<(string Key, string RawPattern)>) pattern.Results.Single()).Value;
+
+        return new RuleToken(
+            this.m_namespace,
+            (ICSharpTypeToken) type.Results.Single(),
+            ((CSharpIdentifierToken) name.Results.Single()).Value,
+            parameters.Results.Cast<CSharpParameterToken>().ToArray(),
+            patternData.Key,
+            this.m_patternParsers[patternData.Key].Tokenize(patternData.RawPattern, this.m_namespace, this.m_caseSensitive),
+            (IProjectionToken) projection.Results.Single()
+        );
+    };
+    RuleName = m_cSharpSyntaxMatcher.CSharpIdentifier;
+    RuleParameters = ImplicitEmptyRuleParameters | DefinedRuleParameters;
+    ImplicitEmptyRuleParameters = ~'(';
+    DefinedRuleParameters = '(' SPACING* (RuleParameter SPACING* (',' SPACING* RuleParameter SPACING*)*)? SPACING* ')';
+    RuleParameter = m_cSharpSyntaxMatcher.CSharpType:type SPACING+ m_cSharpSyntaxMatcher.CSharpIdentifier:name -> {
+        return new CSharpParameterToken(
+            (ICSharpTypeToken) type.Results.Single(),
+            ((CSharpIdentifierToken) name.Results.Single()).Value
+        );
+    };
+
+    // pattern
+    Pattern = m_cSharpSyntaxMatcher.CSharpIdentifier:patternKey SPACING* '#' RawPattern:rawPattern '#' -> {
+        return new ContainerToken<(string Key, string RawPattern)>((patternKey.Inputs.JoinCharsToString(), rawPattern.Inputs.JoinCharsToString()));
+    };
+    RawPattern = (~'#' .)*;
+
+    // projection
+    Projection = VoidProjection | BodyBasedProjection;
+    VoidProjection = SPACING* m_cSharpSyntaxMatcher.CSharpEmptyMethodBody SPACING* -> {
+        return VoidProjectionToken.Instance;
+    };
+    BodyBasedProjection = SPACING* m_cSharpSyntaxMatcher.CSharpMethodBody:body SPACING* -> {
+        return new BodyBasedProjectionToken(body.Inputs.JoinCharsToString());
+    };
+}

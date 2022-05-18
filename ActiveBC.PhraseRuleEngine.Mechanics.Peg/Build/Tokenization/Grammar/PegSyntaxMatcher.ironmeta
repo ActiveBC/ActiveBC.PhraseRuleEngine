@@ -1,0 +1,131 @@
+using System;
+using System.Linq;
+using IronMeta.Matcher;
+using ActiveBC.PhraseRuleEngine.Lib.Common.Helpers;
+using ActiveBC.PhraseRuleEngine.Lib.CodeAnalysis.Tokenization.Tokens;
+using ActiveBC.PhraseRuleEngine.Lib.CodeAnalysis.Tokenization.Tokens.Internal;
+using ActiveBC.PhraseRuleEngine.Build.Tokenization.Tokens;
+using ActiveBC.PhraseRuleEngine.Build.Tokenization.Tokens.Arguments;
+using ActiveBC.PhraseRuleEngine.Mechanics.Peg.Build.Tokenization.Tokens;
+
+ironmeta PegSyntaxMatcher<char, IToken> : Matcher<char, IToken>
+{
+    // constants
+    SPACING = EOL | WHITESPACE | COMMENT;
+    WHITESPACE = [' ' '\t'];
+    EOL = "\r\n";
+    EOF = ~.;
+    COMMENT = m_cSharpSyntaxMatcher.CSharpComment;
+
+    // structure
+    Pattern = SPACING* Group SPACING*;
+    Group = '(' (Branch ('|' Branch)*):branches ')' -> {
+        return new PegGroupToken(branches.Results.Cast<BranchToken>().ToArray());
+    };
+    Branch = SPACING* (BranchItem (SPACING+ BranchItem)*):items SPACING* -> {
+        return new BranchToken(items.Results.Cast<BranchItemToken>().ToArray());
+    };
+    BranchItem = Lookahead?:lookahead Quantifiable:quantifiable Quantifier?:quantifier VariableCapture?:variableName -> {
+        return new BranchItemToken(
+            (IQuantifiableToken) quantifiable.Results.Single(),
+            quantifier.Results.SingleOrDefault() as QuantifierToken ?? new QuantifierToken(1, 1),
+            (variableName.Results.SingleOrDefault() as CSharpIdentifierToken)?.Value,
+            lookahead.Results.SingleOrDefault() as LookaheadToken
+        );
+    };
+    Lookahead = PositiveLookahead | NegativeLookahead;
+    PositiveLookahead = '&' -> {
+        return new LookaheadToken(false);
+    };
+    NegativeLookahead = '!' -> {
+        return new LookaheadToken(true);
+    };
+    VariableCapture = ':' m_cSharpSyntaxMatcher.CSharpIdentifier;
+    Quantifiable = AnyLiteral | Infix | Suffix | Prefix | Literal | LiteralSet | RuleReference | Group;
+
+    // literals
+    AnyLiteral = '.' -> {
+        return AnyLiteralToken.Instance;
+    };
+    Literal = Symbol:literal -> {
+        return new LiteralToken(((ContainerToken<string>) literal.Results.Single()).Value);
+    };
+    Prefix = Symbol:prefix '~' -> {
+        return new PrefixToken(((ContainerToken<string>) prefix.Results.Single()).Value);
+    };
+    Infix = '~' Symbol:infix '~' -> {
+        return new InfixToken(((ContainerToken<string>) infix.Results.Single()).Value);
+    };
+    Suffix = '~' Symbol:suffix -> {
+        return new SuffixToken(((ContainerToken<string>) suffix.Results.Single()).Value);
+    };
+    LiteralSet = '[' ('^'?):negation SPACING* (LiteralSetMember (SPACING+ LiteralSetMember)*):members SPACING* ']' -> {
+        return new LiteralSetToken(
+            negation.Inputs.Any(),
+            members.Results.Cast<ILiteralSetMemberToken>().ToArray()
+        );
+    };
+    LiteralSetMember = Infix | Suffix | Prefix | Literal;
+    RuleReference = '$' m_cSharpSyntaxMatcher.CSharpNamespace:ruleName RuleArguments:arguments -> {
+        return new RuleReferenceToken(
+            this.m_namespace,
+            ((CSharpTypeNameWithNamespaceToken) ruleName.Results.Single()).Value,
+            arguments.Results.Cast<IRuleArgumentToken>().ToArray()
+        );
+    };
+    RuleArguments = ImplicitEmptyRuleArguments | DefinedRuleArguments;
+    ImplicitEmptyRuleArguments = ~'(';
+    DefinedRuleArguments = '(' SPACING* (RuleArgument SPACING* (',' SPACING* RuleArgument SPACING*)*)? SPACING* ')';
+    RuleArgument = RuleDefaultArgument | RuleObjectPropertyArgument;
+    RuleObjectPropertyArgument = m_cSharpSyntaxMatcher.CSharpChainedMemberAccess:memberAccess -> {
+        return new RuleChainedMemberAccessArgumentToken(((CSharpChainedMemberAccessToken) memberAccess.Results.Single()).Value);
+    };
+    RuleDefaultArgument = "default" -> {
+        return RuleDefaultArgumentToken.Instance;
+    };
+
+    // quantifiers
+    Quantifier = ZeroOrOneQuantifier | ZeroOrMoreQuantifier | OneOrMoreQuantifier | ExplixitQuantifier;
+    ZeroOrOneQuantifier = '?' -> {
+        return new QuantifierToken(0, 1);
+    };
+    ZeroOrMoreQuantifier = '*' -> {
+        return new QuantifierToken(0, null);
+    };
+    OneOrMoreQuantifier = '+' -> {
+        return new QuantifierToken(1, null);
+    };
+    ExplixitQuantifier = '{' SPACING* (QuantityRange | QuantityMin | QuantityExact) SPACING* '}';
+    QuantityRange = Integer:min SPACING* ',' SPACING* Integer:max -> {
+        return new QuantifierToken(
+            ((ContainerToken<int>) min.Results.Single()).Value,
+            ((ContainerToken<int>) max.Results.Single()).Value
+        );
+    };
+    QuantityMin = Integer:min SPACING* ',' -> {
+        return new QuantifierToken(((ContainerToken<int>) min.Results.Single()).Value, null);
+    };
+    QuantityExact = Integer:quantity -> {
+        int value = ((ContainerToken<int>) quantity.Results.Single()).Value;
+
+        return new QuantifierToken(value, value);
+    };
+
+    // symbols
+    Symbol = CyrillicWord | LatinWord;
+    CyrillicWord = (CyrillicLetter (CyrillicLetter|'-'|Integer)*):value -> {
+        return new ContainerToken<string>(value.Inputs.JoinCharsToString());
+    };
+    CyrillicLetter = ['а'-'я''А'-'Я''ё''Ё']:value -> {
+        return new ContainerToken<char>(value.Inputs.Single());
+    };
+    LatinWord = (LatinLetter (LatinLetter|'-'|Integer)*):value -> {
+        return new ContainerToken<string>(value.Inputs.JoinCharsToString());
+    };
+    LatinLetter = ['a'-'z''A'-'Z']:value -> {
+        return new ContainerToken<char>(value.Inputs.Single());
+    };
+    Integer = ['0'-'9']+:value -> {
+        return new ContainerToken<int>(Int32.Parse(value.Inputs.JoinCharsToString()));
+    };
+}

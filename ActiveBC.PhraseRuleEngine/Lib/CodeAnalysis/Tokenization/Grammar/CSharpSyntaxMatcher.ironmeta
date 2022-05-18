@@ -1,0 +1,67 @@
+﻿using System;
+using System.Linq;
+using IronMeta.Matcher;
+using ActiveBC.PhraseRuleEngine.Lib.Common.Helpers;
+using ActiveBC.PhraseRuleEngine.Lib.CodeAnalysis.Tokenization.Tokens;
+using ActiveBC.PhraseRuleEngine.Lib.CodeAnalysis.Tokenization.Tokens.Internal;
+
+ironmeta CSharpSyntaxMatcher<char, IToken> : Matcher<char, IToken>
+{
+    SPACING = EOL | WHITESPACE | CSharpComment;
+    WHITESPACE = [' ' '\t'];
+    EOL = "\r\n";
+
+    // c# code
+    CSharpIdentifier = (LatinLetterOrUnderscore (LatinLetterOrUnderscore | ['0'-'9'])*):value -> {
+        return new CSharpIdentifierToken(value.Inputs.JoinCharsToString());
+    };
+    CSharpTypeNameWithNamespace = CSharpChainedIdentifiers:value -> {
+        return new CSharpTypeNameWithNamespaceToken(((ContainerToken<string[]>) value.Results.Single()).Value.JoinToString("."));
+    };
+    CSharpType = CShaptClassicTypeDefinition | CShaptTupleDefinition;
+    CShaptClassicTypeDefinition = CSharpTypeNameWithNamespace:type CSharpTypeArguments?:arguments -> {
+        return new ClassicCSharpTypeToken(
+            (CSharpTypeNameWithNamespaceToken) type.Results.Single(),
+            arguments.Results.Cast<ICSharpTypeToken>().ToArray()
+        );
+    };
+    CSharpNamespace = CSharpTypeNameWithNamespace;
+    CSharpTypeArguments = '<' SPACING* CSharpType (SPACING* ',' SPACING* CSharpType)* SPACING* '>';
+    CShaptTupleDefinition = ('(' SPACING* CSharpTupleItem (SPACING* ',' SPACING* CSharpTupleItem)+ SPACING* ')'):types -> {
+        return new TupleCSharpTypeToken(types.Results.Cast<CSharpTupleItemToken>().ToArray());
+    };
+    CSharpTupleItem = CSharpType:type (SPACING+ CSharpIdentifier)?:propertyName -> {
+        return new CSharpTupleItemToken(
+            (ICSharpTypeToken) type.Results.Single(),
+            (CSharpIdentifierToken) propertyName.Results.FirstOrDefault()
+        );
+    };
+    CSharpChainedMemberAccess = CSharpChainedIdentifiers:value -> {
+        return new CSharpChainedMemberAccessToken(((ContainerToken<string[]>) value.Results.Single()).Value);
+    };
+
+    // helpers
+    CSharpEmptyMethodBody = CSharpEmptyCodeBlock:value -> {
+        return new ContainerToken<string>(value.Inputs.JoinCharsToString());
+    };
+    CSharpMethodBody = CSharpCodeBlock:value -> {
+        return new ContainerToken<string>(value.Inputs.JoinCharsToString());
+    };
+    LatinLetterOrUnderscore = ['a'-'z''A'-'Z''_']:value -> {
+        return new ContainerToken<char>(value.Inputs.First());
+    };
+    CSharpEmptyCodeBlock = '{' SPACING* '}';
+    CSharpCodeBlock = '{' (~'}' (EOL | CSharpComment | CSharpCodeBlock | .))* '}';
+    CSharpComment = "//" (~EOL .)* EOL;
+    CSharpComment = "/*" (~"*/" (EOL | .))* "*/";
+
+    CSharpChainedIdentifiers = (CSharpIdentifier (SPACING* '.' SPACING* CSharpIdentifier)*):chain -> {
+        return new ContainerToken<string[]>(
+            chain
+                .Results
+                .Cast<CSharpIdentifierToken>()
+                .Select(container => container.Value)
+                .ToArray()
+        );
+    };
+}

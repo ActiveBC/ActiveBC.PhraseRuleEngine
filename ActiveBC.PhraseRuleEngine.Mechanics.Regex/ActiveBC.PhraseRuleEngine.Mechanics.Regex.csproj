@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Version>3.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ActiveBC.PhraseRuleEngine\ActiveBC.PhraseRuleEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="IronMeta" Version="4.5.0" />
+  </ItemGroup>
+
+  <!-- uncomment this section to enable build-time RegexSyntaxMatcher generation by IronMeta  -->
+<!--  <Target Name="Generate_RegexSyntaxMatcher" BeforeTargets="BeforeBuild">-->
+<!--    <Exec Command="$(NuGetPackageRoot)ironmeta\4.5.0\tools\net5.0\IronMeta.App.exe -f -n ActiveBC.PhraseRuleEngine.Mechanics.Regex.Build.Tokenization.Grammar $(ProjectDir)Build\Tokenization\Grammar\RegexSyntaxMatcher.ironmeta" />-->
+<!--    <ItemGroup>-->
+<!--      <Compile Include="$(ProjectDir)Construction\Tokenization\Grammar\*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />-->
+<!--    </ItemGroup>-->
+<!--  </Target>-->
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>ActiveBC.PhraseRuleEngine.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>ActiveBC.PhraseRuleEngine.Mechanics.Regex.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>ActiveBC.PhraseRuleEngine.Mechanics.Regex.Benchmarking</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+		<Authors>ActiveBC LLC</Authors>
+		<Company>ActiveBC LLC</Company>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<PackageProjectUrl>https://github.com/ActiveBC/ActiveBC.PhraseRuleEngine</PackageProjectUrl>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<DeterministicSourcePaths>true</DeterministicSourcePaths>
+	</PropertyGroup>
+
+	<!--see https://github.com/dotnet/sourcelink/blob/master/docs/README.md#custom-host-domains-->
+	<ItemGroup Condition=" '$(Configuration)' == 'Release' ">
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+	</ItemGroup>
+
+</Project>

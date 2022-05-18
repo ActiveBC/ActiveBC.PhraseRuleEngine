@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ActiveBC.PhraseRuleEngine.Mechanics.Peg\ActiveBC.PhraseRuleEngine.Mechanics.Peg.csproj" />
+    <ProjectReference Include="..\ActiveBC.PhraseRuleEngine.Mechanics.Regex\ActiveBC.PhraseRuleEngine.Mechanics.Regex.csproj" />
+    <ProjectReference Include="..\ActiveBC.PhraseRuleEngine\ActiveBC.PhraseRuleEngine.csproj" />
+    <ProjectReference Include="..\ActiveBC.Tools.Benchmarking\ActiveBC.Tools.Benchmarking.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
+  </ItemGroup>
+
+</Project>
