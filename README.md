@@ -9,8 +9,8 @@ Phrase Rule Engine (PRE) is a pattern matching library, which allows including m
 **Mechanics** is a concept which allows PRE to be agnostic of any specific procedures of matching the phrase with the pattern. Each mechanics provides a specific input processor class.
 
 This repository contains two mechanics:
-- Peg, which represents the logic of Parsing Expression Grammar (see https://en.wikipedia.org/wiki/Parsing_expression_grammar)
-- Regex, which represents the logic of Regular Expression (https://en.wikipedia.org/wiki/Regular_expression)
+- PEG, which represents the logic of [Parsing Expression Grammars](https://en.wikipedia.org/wiki/Parsing_expression_grammar)
+- Regex, which represents the logic of [Regular Expressions](https://en.wikipedia.org/wiki/Regular_expression)
 
 Please note, that the classic applications of PEG and Regex assume that the input is represented by a string, and the simplest unit of it - a symbol - is a single character. This library works in a paradigm, where the input (a phrase) is an array of strings, and the simplest unit - a symbol - is a word.
 
